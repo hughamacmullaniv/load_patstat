@@ -36,14 +36,14 @@ Examples
 Load a **test** PASTSTAT database and the standardized person table into a MySQL database on `localhost` named `patstat2016a` -- note the `-t` modifier. Zipped table files have been placed into the default folder `./data`.
 
 ```
-$ ./load_patstat.sh -u<USER> -p<PASSWORD> -hlocalhost -d patstat2016a -t -n
+$ ./load_patstat.sh -u<USER> -p<PASSWORD> -hlocalhost -d patstat2016a -t
 
 ```
 
 Load a **full** PATSTAT database and the standardized person table into a `localhost` MySQL database `patstat2016a`. Again, zipped table files have been placed into the default folder `./data`.
 
 ```
-$ ./load_patstat.sh -u<USER> -p<PASSWORD> -hlocalhost -d patstat2016a -n
+$ ./load_patstat.sh -u<USER> -p<PASSWORD> -hlocalhost -d patstat2016a
 
 ```
 
