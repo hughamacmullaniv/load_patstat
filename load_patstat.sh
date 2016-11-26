@@ -29,7 +29,7 @@ while getopts "?vto:u:p:d:h:z:D:" opt; do
     case "$opt" in
     \?)
         show_help
-	exit 0
+        exit 0
         ;;
     v)  verbose=1
         ;;
@@ -38,17 +38,17 @@ while getopts "?vto:u:p:d:h:z:D:" opt; do
     t)  DEMO=1
         ;;
     u)  USER=$OPTARG
-	;;
+        ;;
     p)  PASS=$OPTARG
-	;;
+        ;;
     h)  HOST=$OPTARG
-	;;
+        ;;
     d)  DB=$OPTARG
-	;;
+        ;;
     D)  MYSQLDATAPATH=$OPTARG
-	;;
+        ;;
     z)  ZIPFILESPATH=$OPTARG
-	;;
+        ;;
     esac
 done
 
@@ -59,8 +59,8 @@ shift $((OPTIND-1))
 
 if [[ -z $USER ]] || [[ -z $PASS ]] || [[ -z $HOST ]] || [[ -z $DB ]] || [[ -z $ZIPFILESPATH ]]
 then
-     show_help 
-     exit 1
+    show_help 
+    exit 1
 fi
 
 if [[ ! $verbose -eq 0 ]]
@@ -70,7 +70,8 @@ then
     echo "verbose=$verbose, test=$DEMO leftovers: $@"
 fi
 
-if [ ! -d $ZIPFILESPATH ]; then
+if [ ! -d $ZIPFILESPATH ]
+then
     echo ERROR: path $ZIPFILESPATH does not exist
     exit
 fi
@@ -83,91 +84,91 @@ function create_db() {
 }
 
 load_table() {
-	TIME=$(date '+%F %T %Z')
-	INTIME=$(date +%s)
+    TIME=$(date '+%F %T %Z')
+    INTIME=$(date +%s)
 
-	# This removes all use of indexes for the table.
-	# An option value of 0 disables updates to all indexes, which can be used to get faster inserts.
-	echo TRUNCATE TABLE $1 \; | $SENDSQL 
-	echo ALTER TABLE $1 DISABLE KEYS\; | $SENDSQL
+    # This removes all use of indexes for the table.
+    # An option value of 0 disables updates to all indexes, which can be used to get faster inserts.
+    echo TRUNCATE TABLE $1 \; | $SENDSQL 
+    echo ALTER TABLE $1 DISABLE KEYS\; | $SENDSQL
 
-	myisamchk  --keys-used=0 -rqp $MYSQLDATAPATH/$DB/$1*.MYI
+    myisamchk  --keys-used=0 -rqp $MYSQLDATAPATH/$DB/$1*.MYI
 
-	echo $TIME Loading data in $1 from $3 files
+    echo $TIME Loading data in $1 from $3 files
 
-	# all files containing data for the current table
-	EXPECTED_ROWCOUNT=0
-	# some rows are buggy, that is, they contain a backslash just before the last double quote
-	# e.g.,
-	# 6597821,"US",664004,"CellTech Power, Inc.","Westboro,MA,\"
-	# so we must fix this and we use sed regexp replacement
-	# the original sed expr is
-	# sed -e 's/\\\("[^\"]$\)/\1/g'
-	# but we've to add some extra quotes in order to put the command in a shell variable
-	SED_FIX_1=`echo sed -e 's/\\\\\\+\\("[^\"]$\\)/\1/g'`
+    # all files containing data for the current table
+    EXPECTED_ROWCOUNT=0
+    # some rows are buggy, that is, they contain a backslash just before the last double quote
+    # e.g.,
+    # 6597821,"US",664004,"CellTech Power, Inc.","Westboro,MA,\"
+    # so we must fix this and we use sed regexp replacement
+    # the original sed expr is
+    # sed -e 's/\\\("[^\"]$\)/\1/g'
+    # but we've to add some extra quotes in order to put the command in a shell variable
+    SED_FIX_1=`echo sed -e 's/\\\\\\+\\("[^\"]$\\)/\1/g'`
 
-	# other rows are bugged as well since the cotain one or more backslash just before some double quote
-	# separating different columns
-	# e.g., 
-	# 8638854,"",4318,"BROTHER KOGYO KABUSHIKI KAISHA\",""
+    # other rows are bugged as well since the cotain one or more backslash just before some double quote
+    # separating different columns
+    # e.g., 
+    # 8638854,"",4318,"BROTHER KOGYO KABUSHIKI KAISHA\",""
     # ... ,"COMPANY",108638854,"BROTHER KOGYO KABUSHIKI KAISHA\",0
     # ... ,"","TAIWAN SEMICONDUCTOR MANUFACTURING COMPANY, LTD.\\","ASSIGNMENT ...
-	# so again we've to fix it using sed. The original sed expr used is:
-	#  sed -e 's/\\\+\(",[0-9\"]\)/\1/g'
-	# the escaped expression is
-	SED_FIX_2=`echo sed -e 's/\\\\\\+\\(",[0-9\"]\\)/\1/g'`
+    # so again we've to fix it using sed. The original sed expr used is:
+    #  sed -e 's/\\\+\(",[0-9\"]\)/\1/g'
+    # the escaped expression is
+    SED_FIX_2=`echo sed -e 's/\\\\\\+\\(",[0-9\"]\\)/\1/g'`
 
-	prefix=$(echo $1 | cut -d'_' -f 1)  # grab only the prefix, e.g. tls201, from the full table name
-	for ZIPPEDFILE in `find $ZIPFILESPATH -name "$prefix\_part*\.zip" | sort`
-	do
-	    echo loading part file $ZIPPEDFILE
+    prefix=$(echo $1 | cut -d'_' -f 1)  # grab only the prefix, e.g. tls201, from the full table name
+    for ZIPPEDFILE in `find $ZIPFILESPATH -name "$prefix\_part*\.zip" | sort`
+    do
+        echo loading part file $ZIPPEDFILE
 
-	    UNZIPPEDFILE=/dev/shm/`basename $ZIPPEDFILE`.txt
+        UNZIPPEDFILE=/dev/shm/`basename $ZIPPEDFILE`.txt
 
-            if [ $DEMO -eq 1 ]
-	    then
-                funzip $ZIPPEDFILE | head -n 10000 | $SED_FIX_1 | $SED_FIX_2 > $UNZIPPEDFILE
-            else
-                funzip $ZIPPEDFILE | $SED_FIX_1 | $SED_FIX_2 > $UNZIPPEDFILE
-	    fi
+        if [ $DEMO -eq 1 ]
+        then
+            funzip $ZIPPEDFILE | head -n 10000 | $SED_FIX_1 | $SED_FIX_2 > $UNZIPPEDFILE
+        else
+            funzip $ZIPPEDFILE | $SED_FIX_1 | $SED_FIX_2 > $UNZIPPEDFILE
+        fi
 
-	    let "EXPECTED_ROWCOUNT = EXPECTED_ROWCOUNT + `awk 'END { print NR }' $UNZIPPEDFILE` - 1"
-#	    echo $EXPECTED_ROWCOUNT
+        let "EXPECTED_ROWCOUNT = EXPECTED_ROWCOUNT + `awk 'END { print NR }' $UNZIPPEDFILE` - 1"
+#        echo $EXPECTED_ROWCOUNT
 
-	    $SENDSQL <<EOF
-               set autocommit = 0;
-               set unique_checks = 0;
-               set foreign_key_checks = 0;
-               LOAD DATA LOCAL INFILE "$UNZIPPEDFILE"
-               INTO TABLE $1 FIELDS TERMINATED BY ","
-               OPTIONALLY ENCLOSED BY '"'
-               LINES TERMINATED BY '\r\n'
-               IGNORE 1 LINES;
-               commit;
-               SHOW WARNINGS;
+        $SENDSQL <<EOF
+            set autocommit = 0;
+            set unique_checks = 0;
+            set foreign_key_checks = 0;
+            LOAD DATA LOCAL INFILE "$UNZIPPEDFILE"
+            INTO TABLE $1 FIELDS TERMINATED BY ","
+            OPTIONALLY ENCLOSED BY '"'
+            LINES TERMINATED BY '\r\n'
+            IGNORE 1 LINES;
+            commit;
+            SHOW WARNINGS;
 EOF
-	    rm -rf $UNZIPPEDFILE
-	done
+        rm -rf $UNZIPPEDFILE
+    done
 
-	echo ALTER TABLE $1 ENABLE KEYS \; | $SENDSQL
+    echo ALTER TABLE $1 ENABLE KEYS \; | $SENDSQL
 
-	# If you intend only to read from the table in the future, use myisampack to compress it.
-	# only if it was not partitioned
-	echo "compressing"
-	myisampack $MYSQLDATAPATH/$DB/$1.MYI
+    # If you intend only to read from the table in the future, use myisampack to compress it.
+    # only if it was not partitioned
+    echo "compressing"
+    myisampack $MYSQLDATAPATH/$DB/$1.MYI
 
-	# Re-create the indexes
-	myisamchk  -rqp --sort-buffer-size=2G $MYSQLDATAPATH/$DB/$1*.MYI
+    # Re-create the indexes
+    myisamchk  -rqp --sort-buffer-size=2G $MYSQLDATAPATH/$DB/$1*.MYI
 
-	# FLUSH TABLES
-	echo FLUSH TABLES \; | $SENDSQL
+    # FLUSH TABLES
+    echo FLUSH TABLES \; | $SENDSQL
 
-	echo "no. of rows inserted into $1: `echo SELECT COUNT\(\*\) FROM $1 | $SENDSQL` (expected: $EXPECTED_ROWCOUNT)"
+    echo "no. of rows inserted into $1: `echo SELECT COUNT\(\*\) FROM $1 | $SENDSQL` (expected: $EXPECTED_ROWCOUNT)"
 
-	OUTTIME=$(date +%s)
-	echo " $OUTTIME - $INTIME = "  $(( $OUTTIME - $INTIME )) sec " = " $(( ( $OUTTIME - $INTIME ) / 60 )) min
+    OUTTIME=$(date +%s)
+    echo " $OUTTIME - $INTIME = "  $(( $OUTTIME - $INTIME )) sec " = " $(( ( $OUTTIME - $INTIME ) / 60 )) min
 
-#	read -p 'waiting...'
+#    read -p 'waiting...'
 }
 
 function main(){
@@ -225,26 +226,26 @@ if [ $errlines -gt 0 ]
 then
     if [ $errlines -le 3 ]
     then
-	echo "THE FOLLOWING ERRORS HAVE BEEN DETECTED: "
-	cat $LOGPATH/error_log_$tstamp
+        echo "THE FOLLOWING ERRORS HAVE BEEN DETECTED: "
+        cat $LOGPATH/error_log_$tstamp
     else
-	echo "SOME ERRORS OCCURRED."
-	echo "IT MAY BE SAFE TO IGNORE THEM, BUT PLEASE CHECK FILE $LOGPATH/error_log_$tstamp"
+        echo "SOME ERRORS OCCURRED."
+        echo "IT MAY BE SAFE TO IGNORE THEM, BUT PLEASE CHECK FILE $LOGPATH/error_log_$tstamp"
     fi
-echo
+    echo
 fi
 
 # check for warnings
-warnlines=`cat $LOGPATH/output_log_$tstamp | grep Warning | wc -l`
+warnlines=`grep Warning $LOGPATH/output_log_$tstamp | wc -l`
 if [ $warnlines -gt 0 ]
 then
     if [ $warnlines -lt 10 ]
     then
-	echo "THE FOLLOWING MySQL WARNINGS HAVE BEEN GENERATED: "
-	cat cat $LOGPATH/output_log_$tstamp | grep Warning
+        echo "THE FOLLOWING MySQL WARNINGS HAVE BEEN GENERATED: "
+        grep Warning $LOGPATH/output_log_$tstamp
     else
-	echo "SOME MySQL WARNINGS HAVE BEEN GENERATED."
-	echo "IT MAY BE SAFE TO IGNORE THEM, BUT PLEASE CHECK FILE $LOGPATH/output_log_$tstamp"
+        echo "SOME MySQL WARNINGS HAVE BEEN GENERATED."
+        echo "IT MAY BE SAFE TO IGNORE THEM, BUT PLEASE CHECK FILE $LOGPATH/output_log_$tstamp"
     fi
 fi
 
