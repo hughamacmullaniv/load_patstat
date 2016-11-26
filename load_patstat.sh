@@ -25,7 +25,7 @@ function show_help() {
     echo "  -D: MySQL data directory path (defaults to $MYSQLDATAPATH)"
 }
 
-while getopts "?vto:u:p:d:h:z:m:" opt; do
+while getopts "?vto:u:p:d:h:z:D:" opt; do
     case "$opt" in
     \?)
         show_help
@@ -89,7 +89,7 @@ load_table() {
 	# This removes all use of indexes for the table.
 	# An option value of 0 disables updates to all indexes, which can be used to get faster inserts.
 	echo TRUNCATE TABLE $1 \; | $SENDSQL 
-	echo ALTER TABLE $1 DISABLE KEYS\; | $SENDSQL ;
+	echo ALTER TABLE $1 DISABLE KEYS\; | $SENDSQL
 
 	myisamchk  --keys-used=0 -rqp $MYSQLDATAPATH/$DB/$1*.MYI
 
@@ -149,7 +149,7 @@ EOF
 	    rm -rf $UNZIPPEDFILE
 	done
 
-	echo ALTER TABLE $1 ENABLE KEYS \; | $SENDSQL ;
+	echo ALTER TABLE $1 ENABLE KEYS \; | $SENDSQL
 
 	# If you intend only to read from the table in the future, use myisampack to compress it.
 	# only if it was not partitioned
