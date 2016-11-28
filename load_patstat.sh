@@ -14,6 +14,7 @@ USER=
 PASS=
 HOST=
 DB=
+EDITION="2016b"
 
 
 function show_help {
@@ -26,9 +27,10 @@ function show_help {
     echo "  -o: output and error logs directory (defaults to $LOGPATH)"
     echo "  -d: MySQL DB name"
     echo "  -D: MySQL data directory path (defaults to $MYSQLDATAPATH)"
+    echo "  -E: PATSTAT edition, format YYYY[a|b]. (defaults to $EDITION)"
 }
 
-while getopts "?vto:u:p:d:h:z:D:" opt; do
+while getopts "?vto:u:p:d:h:z:D:E:" opt; do
     case "$opt" in
     \?)
         show_help
@@ -49,6 +51,8 @@ while getopts "?vto:u:p:d:h:z:D:" opt; do
     d)  DB=$OPTARG
         ;;
     D)  MYSQLDATAPATH=$OPTARG
+        ;;
+    E)  EDITION=$OPTARG
         ;;
     z)  ZIPFILESPATH=$OPTARG
         ;;
@@ -80,8 +84,8 @@ fi
 SENDSQL="mysql -vv --show-warnings --local-infile -u$USER -p$PASS -h$HOST $DB"
 
 function create_db {
-    ./tools/create_schema.sh $DB | mysql -vv --show-warnings -u$USER -p$PASS \
-        -h$HOST
+    ./tools/create_schema-${EDITION}.sh $DB | mysql -vv --show-warnings \
+        -u$USER -p$PASS -h$HOST
     echo FLUSH TABLES \; | $SENDSQL
 }
 
@@ -171,7 +175,6 @@ $SENDSQL` (expected: $EXPECTED_ROWCOUNT)"
     OUTTIME=$(date +%s)
     echo " $OUTTIME - $INTIME = "  $(( $OUTTIME - $INTIME )) sec " = " $(( ( \
 $OUTTIME - $INTIME ) / 60 )) min
-
 }
 
 function main {
@@ -179,34 +182,9 @@ function main {
     create_db
 
     # loads official patstat tables
-    load_table tls201_appln
-    load_table tls202_appln_title
-    load_table tls204_appln_prior
-    load_table tls205_tech_rel
-    load_table tls206_person
-    load_table tls906_person  # this is person table with harmonized names
-    load_table tls207_pers_appln
-    load_table tls209_appln_ipc
-    load_table tls210_appln_n_cls
-    load_table tls211_pat_publn
-    load_table tls212_citation
-    load_table tls214_npl_publn
-    load_table tls215_citn_categ
-    load_table tls216_appln_contn
-    load_table tls222_appln_jp_class
-    load_table tls223_appln_docus
-    load_table tls224_appln_cpc
-    load_table tls226_person_orig
-    load_table tls227_pers_publn
-    load_table tls228_docdb_fam_citn
-    load_table tls229_appln_nace2
-    load_table tls230_appln_techn_field
-    load_table tls801_country
-    load_table tls802_legal_event_code
-    load_table tls901_techn_field_ipc
-    load_table tls902_ipc_nace2
-    load_table tls203_appln_abstr
-    load_table tls221_inpadoc_prs
+    for TABLE in `cat tools/tables-${EDITION}.txt`; do
+        load_table $TABLE
+    done
 
     # finally, prints out some statistics on loaded tables
     $SENDSQL <<EOF
@@ -217,7 +195,7 @@ WHERE TABLE_SCHEMA = '$DB'
 EOF
 }
 
-tstamp=`date +"%Y-%m-%d"`
+tstamp=`date +"%Y-%m-%d_%H%M"`
 
 # call the main function and record both std out and std err
 main 2> $LOGPATH/error_log_$tstamp > $LOGPATH/output_log_$tstamp
