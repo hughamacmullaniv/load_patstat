@@ -16,11 +16,13 @@ HOST=
 DB=
 
 
-function show_help() {
-    echo "Usage: [-v] [-t] -u mysql_user -p mysql_pass -h mysql_host -d mysql_dbname -z patstat_zips_dir"
+function show_help {
+    echo "Usage: [-v] [-t] -u mysql_user -p mysql_pass -h mysql_host \
+-d mysql_dbname -z patstat_zips_dir"
     echo "  -v: be verbose"
     echo "  -t: load small chunks of data for testing purposes"
-    echo "  -z: directory containing patstat zipped files shipped in DVDs (defaults to $ZIPFILESPATH)"
+    echo "  -z: directory containing patstat zipped files shipped in DVDs \
+(defaults to $ZIPFILESPATH)"
     echo "  -o: output and error logs directory (defaults to $LOGPATH)"
     echo "  -D: MySQL data directory path (defaults to $MYSQLDATAPATH)"
 }
@@ -57,29 +59,28 @@ shift $((OPTIND-1))
 
 [ "$1" = "--" ] && shift
 
-if [[ -z $USER ]] || [[ -z $PASS ]] || [[ -z $HOST ]] || [[ -z $DB ]] || [[ -z $ZIPFILESPATH ]]
-then
-    show_help 
+if [[ -z $USER ]] || [[ -z $PASS ]] || [[ -z $HOST ]] || [[ -z $DB ]] || \
+        [[ -z $ZIPFILESPATH ]]; then
+    show_help
     exit 1
 fi
 
-if [[ ! $verbose -eq 0 ]]
-then
+if [[ ! $verbose -eq 0 ]]; then
     echo "user: $USER pass: $PASS host: $HOST database: $DB"
     echo "zipped files path: $ZIPFILESPATH"
     echo "verbose=$verbose, test=$DEMO leftovers: $@"
 fi
 
-if [ ! -d $ZIPFILESPATH ]
-then
+if [ ! -d $ZIPFILESPATH ]; then
     echo ERROR: path $ZIPFILESPATH does not exist
     exit
 fi
 
 SENDSQL="mysql -vv --show-warnings --local-infile -u$USER -p$PASS -h$HOST $DB"
 
-function create_db() {
-    ./tools/create_schema.sh $DB | mysql -vv --show-warnings -u$USER -p$PASS -h$HOST
+function create_db {
+    ./tools/create_schema.sh $DB | mysql -vv --show-warnings -u$USER -p$PASS \
+        -h$HOST
     echo FLUSH TABLES \; | $SENDSQL
 }
 
@@ -89,7 +90,7 @@ load_table() {
 
     # This removes all use of indexes for the table.
     # An option value of 0 disables updates to all indexes, which can be used to get faster inserts.
-    echo TRUNCATE TABLE $1 \; | $SENDSQL 
+    echo TRUNCATE TABLE $1 \; | $SENDSQL
     echo ALTER TABLE $1 DISABLE KEYS\; | $SENDSQL
 
     myisamchk  --keys-used=0 -rqp $MYSQLDATAPATH/$DB/$1*.MYI
@@ -109,7 +110,7 @@ load_table() {
 
     # other rows are bugged as well since the cotain one or more backslash just before some double quote
     # separating different columns
-    # e.g., 
+    # e.g.,
     # 8638854,"",4318,"BROTHER KOGYO KABUSHIKI KAISHA\",""
     # ... ,"COMPANY",108638854,"BROTHER KOGYO KABUSHIKI KAISHA\",0
     # ... ,"","TAIWAN SEMICONDUCTOR MANUFACTURING COMPANY, LTD.\\","ASSIGNMENT ...
@@ -119,21 +120,21 @@ load_table() {
     SED_FIX_2=`echo sed -e 's/\\\\\\+\\(",[0-9\"]\\)/\1/g'`
 
     prefix=$(echo $1 | cut -d'_' -f 1)  # grab only the prefix, e.g. tls201, from the full table name
-    for ZIPPEDFILE in `find $ZIPFILESPATH -name "$prefix\_part*\.zip" | sort`
-    do
+    for ZIPPEDFILE in `find $ZIPFILESPATH -name "$prefix\_part*\.zip" | \
+            sort`; do
         echo loading part file $ZIPPEDFILE
 
         UNZIPPEDFILE=/dev/shm/`basename $ZIPPEDFILE`.txt
 
-        if [ $DEMO -eq 1 ]
-        then
-            funzip $ZIPPEDFILE | head -n 10000 | $SED_FIX_1 | $SED_FIX_2 > $UNZIPPEDFILE
+        if [ $DEMO -eq 1 ]; then
+            funzip $ZIPPEDFILE | head -n 10000 | $SED_FIX_1 | $SED_FIX_2 > \
+                $UNZIPPEDFILE
         else
             funzip $ZIPPEDFILE | $SED_FIX_1 | $SED_FIX_2 > $UNZIPPEDFILE
         fi
 
-        let "EXPECTED_ROWCOUNT = EXPECTED_ROWCOUNT + `awk 'END { print NR }' $UNZIPPEDFILE` - 1"
-#        echo $EXPECTED_ROWCOUNT
+        let "EXPECTED_ROWCOUNT = EXPECTED_ROWCOUNT + `awk 'END { print NR }' \
+            $UNZIPPEDFILE` - 1"
 
         $SENDSQL <<EOF
             set autocommit = 0;
@@ -163,15 +164,16 @@ EOF
     # FLUSH TABLES
     echo FLUSH TABLES \; | $SENDSQL
 
-    echo "no. of rows inserted into $1: `echo SELECT COUNT\(\*\) FROM $1 | $SENDSQL` (expected: $EXPECTED_ROWCOUNT)"
+    echo "no. of rows inserted into $1: `echo SELECT COUNT\(\*\) FROM $1 | \
+$SENDSQL` (expected: $EXPECTED_ROWCOUNT)"
 
     OUTTIME=$(date +%s)
-    echo " $OUTTIME - $INTIME = "  $(( $OUTTIME - $INTIME )) sec " = " $(( ( $OUTTIME - $INTIME ) / 60 )) min
+    echo " $OUTTIME - $INTIME = "  $(( $OUTTIME - $INTIME )) sec " = " $(( ( \
+$OUTTIME - $INTIME ) / 60 )) min
 
-#    read -p 'waiting...'
 }
 
-function main(){
+function main {
     # creates an empty database schema
     create_db
 
@@ -222,30 +224,28 @@ main 2> $LOGPATH/error_log_$tstamp > $LOGPATH/output_log_$tstamp
 
 # check of errors
 errlines=`wc -l $LOGPATH/error_log_$tstamp | cut -d' ' -f1`
-if [ $errlines -gt 0 ] 
-then
-    if [ $errlines -le 3 ]
-    then
+if [ $errlines -gt 0 ]; then
+    if [ $errlines -le 3 ]; then
         echo "THE FOLLOWING ERRORS HAVE BEEN DETECTED: "
         cat $LOGPATH/error_log_$tstamp
     else
         echo "SOME ERRORS OCCURRED."
-        echo "IT MAY BE SAFE TO IGNORE THEM, BUT PLEASE CHECK FILE $LOGPATH/error_log_$tstamp"
+        echo "IT MAY BE SAFE TO IGNORE THEM, BUT PLEASE CHECK FILE \
+$LOGPATH/error_log_$tstamp"
     fi
     echo
 fi
 
 # check for warnings
 warnlines=`grep Warning $LOGPATH/output_log_$tstamp | wc -l`
-if [ $warnlines -gt 0 ]
-then
-    if [ $warnlines -lt 10 ]
-    then
+if [ $warnlines -gt 0 ]; then
+    if [ $warnlines -lt 10 ]; then
         echo "THE FOLLOWING MySQL WARNINGS HAVE BEEN GENERATED: "
         grep Warning $LOGPATH/output_log_$tstamp
     else
         echo "SOME MySQL WARNINGS HAVE BEEN GENERATED."
-        echo "IT MAY BE SAFE TO IGNORE THEM, BUT PLEASE CHECK FILE $LOGPATH/output_log_$tstamp"
+        echo "IT MAY BE SAFE TO IGNORE THEM, BUT PLEASE CHECK FILE \
+$LOGPATH/output_log_$tstamp"
     fi
 fi
 
