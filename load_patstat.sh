@@ -24,6 +24,7 @@ function show_help {
     echo "  -z: directory containing patstat zipped files shipped in DVDs \
 (defaults to $ZIPFILESPATH)"
     echo "  -o: output and error logs directory (defaults to $LOGPATH)"
+    echo "  -d: MySQL DB name"
     echo "  -D: MySQL data directory path (defaults to $MYSQLDATAPATH)"
 }
 
@@ -84,7 +85,7 @@ function create_db {
     echo FLUSH TABLES \; | $SENDSQL
 }
 
-load_table() {
+function load_table {
     TIME=$(date '+%F %T %Z')
     INTIME=$(date +%s)
 
@@ -240,7 +241,7 @@ fi
 warnlines=`grep Warning $LOGPATH/output_log_$tstamp | wc -l`
 if [ $warnlines -gt 0 ]; then
     if [ $warnlines -lt 10 ]; then
-        echo "THE FOLLOWING MySQL WARNINGS HAVE BEEN GENERATED: "
+        echo "THE FOLLOWING MySQL WARNINGS HAVE BEEN GENERATED:"
         grep Warning $LOGPATH/output_log_$tstamp
     else
         echo "SOME MySQL WARNINGS HAVE BEEN GENERATED."
